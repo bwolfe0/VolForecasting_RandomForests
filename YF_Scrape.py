@@ -6,6 +6,7 @@ import boto3
 from io import StringIO
 from secret import aws_key, aws_secret
 
+
 def Scrape(symbol,n_options):
     ticker = yf.Ticker(symbol)
     dates = ticker.options[:n_options]
@@ -17,7 +18,6 @@ def Scrape(symbol,n_options):
         new = ticker.option_chain(date=d).calls
         new['Expiration Date'] = d
         df = pd.concat([df,new])
-
     df['OptionType'] = 'Call'
 
     #puts
@@ -49,3 +49,5 @@ def AWS_Push(df,date=dt.date.today()):
     df.to_csv(csv_buffer, index=False)
 
     s3.Object(bucket_name, f'SPY_Scrape_{date.month}_{date.day}_{date.year}.csv').put(Body=csv_buffer.getvalue())
+
+    print("Action Complete")
