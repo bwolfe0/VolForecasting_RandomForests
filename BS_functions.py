@@ -4,6 +4,7 @@ from numpy import exp, log,sqrt
 N = norm.cdf
 n = norm.pdf
 
+
 def GetCall(S,T,r,K,sigma):
     '''Find the Black Scholes price of a European Call Option
         S: Stock Price at time 0
