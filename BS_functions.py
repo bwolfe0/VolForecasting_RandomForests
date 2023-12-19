@@ -13,9 +13,13 @@ def GetCall(S,T,r,K,sigma):
         K: Strike Price
         sigma: Annualized Volatility
     '''
+    for j in [S,T,r,K,sigma]:
+        if j <= 0: raise ValueError("Inputs should be greater than zero")
+
     d1 = (log(S/K) + (r + sigma**2/2)*T)/(sigma*sqrt(T))
     d2 = d1 - sigma * sqrt(T)
     return S*N(d1) - K*exp(-r*T)*N(d2)
+
 
 def GetVega(S,T,r,K,sigma):
     '''Find the "Vega" of a Black Scholes European Call Option
@@ -25,8 +29,12 @@ def GetVega(S,T,r,K,sigma):
     K: Strike Price
     sigma: Annualized Volatility
     '''
+    for j in [S,T,r,K,sigma]:
+        if j <= 0: raise ValueError("Inputs should be greater than zero")
+
     d1 = (log(S/K) + (r + sigma**2/2)*T)/(sigma*sqrt(T))
-    return S*sqrt(T)*n(d1) 
+    return S*sqrt(T)*n(d1)
+
 
 def GetIV(target_value,S,T,r,K,sigma_guess):
     '''Estimate the Implied Volatility of a European Option using Newton's Method.
@@ -37,9 +45,12 @@ def GetIV(target_value,S,T,r,K,sigma_guess):
     K: Strike Price
     sigma: Annualized Volatility
     '''
+    for j in [target_value,S,T,r,K,sigma_guess]:
+        if j <= 0: raise ValueError("Inputs should be greater than zero")
+
     sigma = sigma_guess
     max_iterations = 200
-    precision = 1e-5
+    precision = 1e-8
 
     for i in range(max_iterations):
         price = GetCall(S,T,r,K,sigma)
