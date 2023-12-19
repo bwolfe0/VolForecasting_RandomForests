@@ -30,7 +30,7 @@ def GetPremium(S,T,r,K,sigma,flag='c'):
         return -S*N(-d1) + K*exp(-r*T)*N(-d2)
 
 
-def GetVega(S,T,r,K,sigma,flag='c'):
+def GetVega(S,T,r,K,sigma, flag='c'):
     '''Find the "Vega" of a Black Scholes European Call Option
     S: Stock Price at time 0
     T: Time to expiration (annualized)
@@ -47,10 +47,10 @@ def GetVega(S,T,r,K,sigma,flag='c'):
     if flag == 'c':
         return S*sqrt(T)*n(d1)
     else:
-        return -S*sqrt(T)*n(-d1)
+        return S*sqrt(T)*n(-d1)
 
 
-def GetIV(target_value,S,T,r,K,sigma_guess=.5):
+def GetIV(target_value,S,T,r,K,sigma_guess=.5,flag='c'):
     '''Estimate the Implied Volatility of a European Option using Newton's Method.
     target_value: The price of the option
     S: Stock Price at time 0
@@ -58,6 +58,7 @@ def GetIV(target_value,S,T,r,K,sigma_guess=.5):
     r: Annual risk free rate
     K: Strike Price
     sigma: Annualized Volatility
+    flag: option type, 'c' or 'p'
     '''
     for i, val in enumerate([target_value,S,T,r,K,sigma_guess]):
         if is_numeric(val) is False: raise TypeError(f"Inputs should be numeric: {val}")
@@ -69,7 +70,7 @@ def GetIV(target_value,S,T,r,K,sigma_guess=.5):
     precision = 1e-5
 
     for i in range(max_iterations):
-        price = GetPremium(S,T,r,K,sigma)
+        price = GetPremium(S,T,r,K,sigma,flag)
         vega = GetVega(S,T,r,K,sigma)
 
         diff = target_value - price
@@ -81,5 +82,8 @@ def GetIV(target_value,S,T,r,K,sigma_guess=.5):
         #Plus sign comes from the definition of diff. Derivitive of diff WRT sigma causes double negative
         #Times 10 factor helps with stable convergence
         sigma = abs(sigma + diff/(10*vega))
+        
+        if sigma < 1e-4:
+            sigma = sigma_guess/2
 
-    return {'IV': sigma, 'Iterations': max_iterations}
+    return {'IV': sigma, 'Numer of Iterations': max_iterations}
