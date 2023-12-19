@@ -4,6 +4,9 @@ from numpy import exp, log,sqrt
 N = norm.cdf
 n = norm.pdf
 
+def is_numeric(value):
+    return isinstance(value, (int, float, complex)) and not isinstance(value, bool)
+
 
 def GetCall(S,T,r,K,sigma):
     '''Find the Black Scholes price of a European Call Option
@@ -13,8 +16,9 @@ def GetCall(S,T,r,K,sigma):
         K: Strike Price
         sigma: Annualized Volatility
     '''
-    for j in [S,T,r,K,sigma]:
-        if j <= 0: raise ValueError("Inputs should be greater than zero")
+    for i, val in enumerate([S,T,r,K,sigma]):
+        if is_numeric(val) is False: raise TypeError(f"Inputs should be numeric: {val}")
+        if val <= 0: raise ValueError(f"Inputs should be greater than zero: {['S','T','r','K','sigma'][i]} = {val}")
 
     d1 = (log(S/K) + (r + sigma**2/2)*T)/(sigma*sqrt(T))
     d2 = d1 - sigma * sqrt(T)
@@ -29,14 +33,15 @@ def GetVega(S,T,r,K,sigma):
     K: Strike Price
     sigma: Annualized Volatility
     '''
-    for j in [S,T,r,K,sigma]:
-        if j <= 0: raise ValueError("Inputs should be greater than zero")
+    for i, val in enumerate([S,T,r,K,sigma]):
+        if is_numeric(val) is False: raise TypeError(f"Inputs should be numeric: {val}")
+        if val <= 0: raise ValueError(f"Inputs should be greater than zero: {['S','T','r','K','sigma'][i]} = {val}")
 
     d1 = (log(S/K) + (r + sigma**2/2)*T)/(sigma*sqrt(T))
     return S*sqrt(T)*n(d1)
 
 
-def GetIV(target_value,S,T,r,K,sigma_guess):
+def GetIV(target_value,S,T,r,K,sigma_guess=.5):
     '''Estimate the Implied Volatility of a European Option using Newton's Method.
     target_value: The price of the option
     S: Stock Price at time 0
@@ -45,8 +50,10 @@ def GetIV(target_value,S,T,r,K,sigma_guess):
     K: Strike Price
     sigma: Annualized Volatility
     '''
-    for j in [target_value,S,T,r,K,sigma_guess]:
-        if j <= 0: raise ValueError("Inputs should be greater than zero")
+    for i, val in enumerate([target_value,S,T,r,K,sigma_guess]):
+        if is_numeric(val) is False: raise TypeError(f"Inputs should be numeric: {val}")
+        if val <= 0: raise ValueError(f"Inputs should be greater than zero: {['S','T','r','K','sigma'][i]} = {val}")
+
 
     sigma = sigma_guess
     max_iterations = 200
@@ -63,6 +70,7 @@ def GetIV(target_value,S,T,r,K,sigma_guess):
         
         #Use Newton Method to find next step. Formula is x_n = x_{n-1} - f(sigma)/f'(sigma). Here, f(sigma) = diff
         #Plus sign comes from the definition of diff. Derivitive of diff WRT sigma causes double negative
-        sigma = sigma + diff/vega 
+        #Times 100 factor helps with stable convergence
+        sigma = abs(sigma + diff/(100*vega))
 
     return sigma
