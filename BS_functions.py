@@ -59,6 +59,7 @@ def GetIV(target_value,S,T,r,K,sigma_guess=.5,flag='c'):
     K: Strike Price
     sigma: Annualized Volatility
     flag: option type, 'c' or 'p'
+    Output: {'IV': sigma, 'Numer of Iterations': max_iterations}
     '''
     for i, val in enumerate([target_value,S,T,r,K,sigma_guess]):
         if is_numeric(val) is False: raise TypeError(f"Inputs should be numeric: {val}")
