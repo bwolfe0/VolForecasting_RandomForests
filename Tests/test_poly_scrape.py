@@ -12,6 +12,10 @@ class test_poly_scrape(unittest.TestCase):
         self.assertEqual(.69,res['Call close'])
         self.assertEqual(.64,res['Put close'])
 
+    def test_IV_grab(self):
+        res = IV_grab(dt.date(2023,11,27))
+        self.assertAlmostEqual(0.094055,res['Avg IV'])
+
 
 if __name__ == '__main__':
     unittest.main()
