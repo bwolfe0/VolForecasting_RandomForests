@@ -16,6 +16,11 @@ class test_poly_scrape(unittest.TestCase):
         res = IV_grab(dt.date(2023,11,27))
         self.assertAlmostEqual(0.094055,res['Avg IV'])
 
+    def test_IV_grab_exceptions(self):
+        with self.assertRaises(ValueError):
+            IV_grab(dt.date(2023,12,3))
+            IV_grab(5)
+
 
 if __name__ == '__main__':
     unittest.main()

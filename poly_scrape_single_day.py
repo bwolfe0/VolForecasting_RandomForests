@@ -6,28 +6,41 @@ from secret import polygon_key
 from BS_functions import *
 import math
 
-def prices_grab(today):
+def prices_grab(date):
     '''
+    Get the close prices of SPY, closest call strike above, and closest put below with next-day expiration.
+    Date: The day for which prices are aquired.
     Output: {'Stock close': sc, 'Call close':cc, 'Put close': pc}
     '''
+    #Create Client Objects
     OC = pg.OptionsClient(polygon_key)
     RC = pg.reference_apis.reference_api.ReferenceClient(polygon_key)
     SC = pg.StocksClient(polygon_key)
 
-    #today = dt.date(2023,11,27)
-    today_string = today.strftime('%Y-%m-%d')
-    tick_date = (today + dt.timedelta(days=1)).strftime('%y%m%d')
+    #Reformat Input
+    date_string = date.strftime('%Y-%m-%d')
+    tick_date = (date + dt.timedelta(days=1)).strftime('%y%m%d')
 
-    sc = SC.get_daily_open_close('SPY', date=today_string)['close']
+    #Pull stock close
+    sc = SC.get_daily_open_close('SPY', date=date_string)['close']
 
+    #Pull close of higher strike call and lower strike put relative to stock close
     call_strike = str(math.ceil(sc))
     put_strike = str(math.floor(sc))
 
+    call_pull = OC.get_daily_open_close('O:SPY'+tick_date+'C00'+call_strike+'000', date=date_string)
+    put_pull = OC.get_daily_open_close('O:SPY'+tick_date+'P00'+put_strike+'000', date=date_string)
+
+    #Ensure that data has been pulled
+    if ('message' in call_pull) or ('message' in put_pull):
+        raise LookupError(f"{call_pull['message']}")
+
+    #Ensure that 'close' index exists
     try:
-        cc = OC.get_daily_open_close('O:SPY'+tick_date+'C00'+call_strike+'000', date=today_string)['close']
-        pc = OC.get_daily_open_close('O:SPY'+tick_date+'P00'+put_strike+'000', date=today_string)['close']
-    except KeyError:
-        return("Data not found.")
+        cc = call_pull['close']
+        pc = put_pull['close']
+    except:
+        raise LookupError("Data not found.")
 
     print(f"Stock close: {sc}")
     print(f"Call close: {cc}")
@@ -35,18 +48,32 @@ def prices_grab(today):
 
     return {'Stock close': sc, 'Call close':cc, 'Put close': pc}
 
-def IV_grab(today):
+def IV_grab(date):
     '''
+    Get an average implied volatility at close for "date" based on the IV of the closest call strike above the closing price 
+    and closest put price below with next-day expiration.. 
+    Date: The day for which prices are aquired.
     Output: {'Stock close': sc, 'Call close':cc, 'Put close': pc, 'Avg IV': avg_IV}
     '''
-    res = prices_grab(today)
-    if res == 'Data not found.':
-        return res
+    #Data-type exception handling
+    if isinstance(date, (dt.date, dt.datetime)) is False:
+        try:
+            date = dt.datetime.strptime(date,'%Y-%m-%d')
+        except:
+            raise ValueError("Input date not in datetime or suitable string format.")
+        
+    #Weekends Exception Handling (Saturday (5), Sunday (6))
+    if date.weekday() >= 5:
+        raise ValueError("Input date is a weekend")
+
+    #Get underlying, call, and put closing prices
+    res = prices_grab(date)
     
     sc = res['Stock close']
     cc = res['Call close']
     pc = res['Put close']
 
+    #Find IV for both derivatives, find average
     call_IV = GetIV(target_value=cc,S=sc,K=math.ceil(sc),r=.05375,T=1/365,flag='c')['IV']
     put_IV = GetIV(target_value=pc,S=sc,K=math.floor(sc),r=.05375,T=1/365,flag='p')['IV']
     avg_IV = (call_IV + put_IV)/2
