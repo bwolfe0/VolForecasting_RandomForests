@@ -19,10 +19,12 @@ def prices_grab(date):
 
     #Reformat Input
     date_string = date.strftime('%Y-%m-%d')
+    next_date_string = (date + dt.timedelta(days=1)).strftime('%Y-%m-%d')
     tick_date = (date + dt.timedelta(days=1)).strftime('%y%m%d')
 
     #Pull stock close
     sc = SC.get_daily_open_close('SPY', date=date_string)['close']
+    sc_next = SC.get_daily_open_close('SPY', date=next_date_string)['close']
 
     #Pull close of higher strike call and lower strike put relative to stock close
     call_strike = str(math.ceil(sc))
@@ -46,7 +48,7 @@ def prices_grab(date):
     print(f"Call close: {cc}")
     print(f"Put close: {pc}")
 
-    return {'Stock close': sc, 'Call close':cc, 'Put close': pc}
+    return {'Stock close': sc,'Stock close next':sc_next, 'Call close':cc, 'Put close': pc}
 
 def IV_grab(date):
     '''
@@ -78,4 +80,6 @@ def IV_grab(date):
     put_IV = GetIV(target_value=pc,S=sc,K=math.floor(sc),r=.05375,T=1/365,flag='p')['IV']
     avg_IV = (call_IV + put_IV)/2
 
-    return {'Stock close': sc, 'Call close':cc, 'Put close': pc, 'Avg IV': avg_IV}
+    res['Avg IV'] = avg_IV
+
+    return res
