@@ -36,12 +36,12 @@ def prices_grab(date,next_date):
     try:
         sc = stock_pull['close']
     except:
-        raise KeyError(f"Data not found")
+        raise KeyError(f"Data not found for 'date'")
     
     try:
         sc_next = stock_pull_next['close']
     except:
-        raise KeyError(f"Data not found")
+        raise KeyError(f"Data not found for following day")
 
 
     #Pull close of higher strike call and lower strike put relative to stock close
