@@ -25,11 +25,24 @@ def prices_grab(date,next_date):
     tick_date = next_date.strftime('%y%m%d')
 
     #Pull stock close
+    stock_pull = SC.get_daily_open_close('SPY', date=date_string)
+    stock_pull_next = SC.get_daily_open_close('SPY', date=next_date_string)
+
+    if 'message' in stock_pull:
+        raise LookupError(f"{stock_pull['message']}")
+    elif 'message' in stock_pull_next:
+        raise LookupError(f"{stock_pull_next['message']}")
+
     try:
-        sc = SC.get_daily_open_close('SPY', date=date_string)['close']
-        sc_next = SC.get_daily_open_close('SPY', date=next_date_string)['close']
-    except KeyError:
-        raise KeyError("Couldn't pull stock price close")
+        sc = stock_pull['close']
+    except:
+        raise KeyError(f"Data not found")
+    
+    try:
+        sc_next = stock_pull_next['close']
+    except:
+        raise KeyError(f"Data not found")
+
 
     #Pull close of higher strike call and lower strike put relative to stock close
     call_strike = str(math.ceil(sc))
@@ -39,8 +52,11 @@ def prices_grab(date,next_date):
     put_pull = OC.get_daily_open_close('O:SPY'+tick_date+'P00'+put_strike+'000', date=date_string)
 
     #Ensure that data has been pulled
-    if ('message' in call_pull) or ('message' in put_pull):
+    if 'message' in call_pull:
         raise LookupError(f"{call_pull['message']}")
+    if 'message' in put_pull:
+        raise LookupError(f"{put_pull['message']}")
+
 
     #Ensure that 'close' index exists
     try:
