@@ -1,9 +1,11 @@
+import sys
+sys.path.append('/Users/benwolfe/Desktop/OneDrive/Python')
 import pandas as pd
 import polygon as pg
 import matplotlib.pyplot as plt
 import datetime as dt
 from secret import polygon_key
-from BS_functions import *
+from OptionsData.BS_functions import *
 import math
 
 def prices_grab(date):
@@ -17,14 +19,19 @@ def prices_grab(date):
     RC = pg.reference_apis.reference_api.ReferenceClient(polygon_key)
     SC = pg.StocksClient(polygon_key)
 
+
+
     #Reformat Input
     date_string = date.strftime('%Y-%m-%d')
     next_date_string = (date + dt.timedelta(days=1)).strftime('%Y-%m-%d')
     tick_date = (date + dt.timedelta(days=1)).strftime('%y%m%d')
 
     #Pull stock close
-    sc = SC.get_daily_open_close('SPY', date=date_string)['close']
-    sc_next = SC.get_daily_open_close('SPY', date=next_date_string)['close']
+    try:
+        sc = SC.get_daily_open_close('SPY', date=date_string)['close']
+        sc_next = SC.get_daily_open_close('SPY', date=next_date_string)['close']
+    except KeyError:
+        raise KeyError("Couldn't pull stock price close")
 
     #Pull close of higher strike call and lower strike put relative to stock close
     call_strike = str(math.ceil(sc))
@@ -41,16 +48,15 @@ def prices_grab(date):
     try:
         cc = call_pull['close']
         pc = put_pull['close']
-    except:
+    except KeyError:
         raise LookupError("Data not found.")
-
-    print(f"Stock close: {sc}")
-    print(f"Call close: {cc}")
-    print(f"Put close: {pc}")
 
     return {'Stock close': sc,'Stock close next':sc_next, 'Call close':cc, 'Put close': pc}
 
-def IV_grab(date):
+
+
+
+def IV_grab(date, trading_days):
     '''
     Get an average implied volatility at close for "date" based on the IV of the closest call strike above the closing price 
     and closest put price below with next-day expiration.. 
@@ -64,9 +70,9 @@ def IV_grab(date):
         except:
             raise ValueError("Input date not in datetime or suitable string format.")
         
-    #Weekends Exception Handling (Saturday (5), Sunday (6))
-    if date.weekday() >= 5:
-        raise ValueError("Input date is a weekend")
+    #Trading Days Exception Handling
+    if date not in trading_days:
+        raise ValueError("Not a valid trading day")
 
     #Get underlying, call, and put closing prices
     res = prices_grab(date)
