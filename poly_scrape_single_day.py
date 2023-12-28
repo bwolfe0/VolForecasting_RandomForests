@@ -8,7 +8,7 @@ from secret import polygon_key
 from OptionsData.BS_functions import *
 import math
 
-def prices_grab(date):
+def prices_grab(date,next_date):
     '''
     Get the close prices of SPY, closest call strike above, and closest put below with next-day expiration.
     Date: The day for which prices are aquired.
@@ -19,12 +19,10 @@ def prices_grab(date):
     RC = pg.reference_apis.reference_api.ReferenceClient(polygon_key)
     SC = pg.StocksClient(polygon_key)
 
-
-
     #Reformat Input
     date_string = date.strftime('%Y-%m-%d')
-    next_date_string = (date + dt.timedelta(days=1)).strftime('%Y-%m-%d')
-    tick_date = (date + dt.timedelta(days=1)).strftime('%y%m%d')
+    next_date_string = next_date.strftime('%Y-%m-%d')
+    tick_date = next_date.strftime('%y%m%d')
 
     #Pull stock close
     try:
@@ -73,9 +71,11 @@ def IV_grab(date, trading_days):
     #Trading Days Exception Handling
     if date not in trading_days:
         raise ValueError("Not a valid trading day")
+    
+    next_date = trading_days[trading_days.index(date)+1]
 
     #Get underlying, call, and put closing prices
-    res = prices_grab(date)
+    res = prices_grab(date,next_date)
     
     sc = res['Stock close']
     cc = res['Call close']
