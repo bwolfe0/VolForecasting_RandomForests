@@ -1,7 +1,5 @@
-import sys
-sys.path.append('/Users/benwolfe/Desktop/OneDrive/Python/OptionsData')
 import unittest
-from poly_scrape_single_day import *
+from VolForecasting_RandomForests.Functions.polygon_scrape import *
 
 
 class test_poly_scrape(unittest.TestCase):

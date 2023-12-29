@@ -1,7 +1,5 @@
-import sys
-sys.path.append('/Users/benwolfe/Desktop/OneDrive/Python/OptionsData')
 import unittest
-from BS_functions import *
+from VolForecasting_RandomForests.Functions.BS_functions import *
 from numpy import exp
 
 
