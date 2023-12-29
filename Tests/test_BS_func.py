@@ -1,5 +1,5 @@
 import unittest
-from VolForecasting_RandomForests.Functions.BS_functions import *
+from Functions.BS_functions import *
 from numpy import exp
 
 

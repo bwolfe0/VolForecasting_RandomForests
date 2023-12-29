@@ -1,5 +1,5 @@
 import unittest
-from VolForecasting_RandomForests.Functions.RF_Funcs import *
+from Functions.RF_Funcs import *
 
 class test_RF_Funcs(unittest.TestCase):
     ##Check Holidays

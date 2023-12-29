@@ -6,7 +6,7 @@ import time
 import warnings
 warnings.filterwarnings('ignore')
 from math import ceil, floor
-from VolForecasting_RandomForests.Functions.polygon_scrape import *
+from Functions.polygon_scrape import *
 
 
 def RollingWindowRF(X,Y,dates,w=300):

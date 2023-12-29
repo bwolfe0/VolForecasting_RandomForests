@@ -3,7 +3,7 @@ import polygon as pg
 import matplotlib.pyplot as plt
 import datetime as dt
 from secret import polygon_key
-from VolForecasting_RandomForests.Functions.BS_functions import *
+from Functions.BS_functions import *
 import math
 
 def prices_grab(date,next_date):
