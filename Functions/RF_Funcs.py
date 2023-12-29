@@ -6,13 +6,16 @@ import time
 import warnings
 warnings.filterwarnings('ignore')
 from math import ceil, floor
-
-import sys
-sys.path.append('/Users/benwolfe/Desktop/OneDrive/Python')
-from OptionsData.Functions.polygon_scrape import *
+from VolForecasting_RandomForests.Functions.polygon_scrape import *
 
 
 def RollingWindowRF(X,Y,dates,w=300):
+    '''
+    For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
+    X: Predictor dataframe.
+    Y: Target variable dataframe.
+    dates: Series containing dates corresponding to X and Y data.
+    '''
     if len(X) != len(Y):
         raise ValueError("X and Y are not the same length")
     
@@ -44,6 +47,10 @@ def RollingWindowRF(X,Y,dates,w=300):
 
 
 def GetSignal(model,market):
+    '''
+    Determine whether to buy or sell the straddle strategy. If the model prediction is higher than the market's, the strategy
+    is bought and vice versa.
+    '''
     if model >= market:
         return(1)
     else:
@@ -52,25 +59,35 @@ def GetSignal(model,market):
 
 
 def GetRatios(sc,cc,pc,avg_IV):
+    '''
+    Determine the number of puts and calls to buy such that the option strategy breaks even with the market's estimate for 
+    next day's vol.
+    sc: Today's SPY closing price.
+    cc: Today's closing price for the closest above call strike expiring the next day.
+    pc: Today's closing price for the closest below put strike expiring the next day.
+    avg_IG: The market's estimate for next day vol based on the average IV of the closest above and below call and put strikes respectively (see IV_grab in polygonscrape.py).
+    '''
     from scipy.optimize import minimize
-
-    # Objective function
+    #Dummy function
     def objective(x):
-        return 0  # Dummy function
+        return 0 
 
-    # Constraints
+    #calls_cost + puts_cost = 100
     def constraint1(x):
-        return x[0]*cc + x[1]*pc - 100  # x + y = 1
+        return x[0]*cc + x[1]*pc - 100  
 
+    #Distance between intercepts on profit diagram = market volatility estimate
     def constraint2(x):
-        return (ceil(sc) + x[0]*cc) - (floor(sc) - x[1]*pc) - (2*sc*avg_IV)/sqrt(365)  # x - y = constant
-
-    # Initial guess
-    x0 = [20, 20]
+        return (ceil(sc) + x[0]*cc) - (floor(sc) - x[1]*pc) - (2*sc*avg_IV)/sqrt(365)  
 
     cons = [{'type': 'eq', 'fun': constraint1},
             {'type': 'eq', 'fun': constraint2}]
-    bounds = [(0, None), (0, None)]  # x >= 0, y >= 0
+    
+    # Initial guess
+    x0 = [20, 20]
+
+    # x >= 0, y >= 0
+    bounds = [(0, None), (0, None)]
 
     solution = minimize(objective, x0, method='SLSQP', bounds=bounds, constraints=cons)
 
@@ -79,6 +96,14 @@ def GetRatios(sc,cc,pc,avg_IV):
 
 
 def OptionStrategy(model_estimate,date,trading_days):
+    '''
+    Execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
+    to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
+    straddle is bought and vice versa.
+    model_estimate: An estimate for volatility that is purportedly able to "beat the market"
+    date: The date for which the strategy would be bought.
+    trading_days: A list of relevant trading days.
+    '''
     result = IV_grab(date,trading_days)
 
     cc = result['Call close']
