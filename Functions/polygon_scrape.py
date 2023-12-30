@@ -35,7 +35,6 @@ def prices_grab(date,next_date):
         sc = stock_pull['close']
     except:
         raise KeyError(f"Data not found for 'date'")
-    
     try:
         sc_next = stock_pull_next['close']
     except:
