@@ -66,6 +66,7 @@ def GetRatios(sc,cc,pc,avg_IV):
     cc: Today's closing price for the closest above call strike expiring the next day.
     pc: Today's closing price for the closest below put strike expiring the next day.
     avg_IG: The market's estimate for next day vol based on the average IV of the closest above and below call and put strikes respectively (see IV_grab in polygonscrape.py).
+    Output: [#calls, #puts]
     '''
     from scipy.optimize import minimize
     #Dummy function
@@ -74,7 +75,7 @@ def GetRatios(sc,cc,pc,avg_IV):
 
     #calls_cost + puts_cost = 100
     def constraint1(x):
-        return x[0]*cc + x[1]*pc - 100  
+        return x[0]*cc + x[1]*pc - 182*1.036  
 
     #Distance between intercepts on profit diagram = market volatility estimate
     def constraint2(x):
@@ -89,7 +90,7 @@ def GetRatios(sc,cc,pc,avg_IV):
     # x >= 0, y >= 0
     bounds = [(0, None), (0, None)]
 
-    solution = minimize(objective, x0, method='SLSQP', bounds=bounds, constraints=cons)
+    solution = minimize(objective, x0, method='trust-constr', bounds=bounds, constraints=cons)
 
     return solution.x
     
@@ -100,7 +101,7 @@ def OptionStrategy(model_estimate,date,trading_days):
     Execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
     straddle is bought and vice versa.
-    model_estimate: An estimate for volatility that is purportedly able to "beat the market"
+    model_estimate: An estimate for volatility that is purportedly able to "beat the market."
     date: The date for which the strategy would be bought.
     trading_days: A list of relevant trading days.
     '''
