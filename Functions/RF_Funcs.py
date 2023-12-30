@@ -73,24 +73,24 @@ def GetRatios(sc,cc,pc,avg_IV):
     def objective(x):
         return 0 
 
-    #calls_cost + puts_cost = 100
+    #Constraint on lower intercept
     def constraint1(x):
-        return x[0]*cc + x[1]*pc - 182*1.036  
+        return (floor(sc) - (cc*x[0]+pc*x[1])/x[1]) - sc*(1-avg_IV/sqrt(365))
 
-    #Distance between intercepts on profit diagram = market volatility estimate
+    #Constraint on higher intercept
     def constraint2(x):
-        return (ceil(sc) + x[0]*cc) - (floor(sc) - x[1]*pc) - (2*sc*avg_IV)/sqrt(365)  
+        return (ceil(sc) + (cc*x[0]+pc*x[1])/x[0]) - sc*(1+avg_IV/sqrt(365))
 
     cons = [{'type': 'eq', 'fun': constraint1},
             {'type': 'eq', 'fun': constraint2}]
     
     # Initial guess
-    x0 = [20, 20]
+    x0 = [1, 1]
 
     # x >= 0, y >= 0
     bounds = [(0, None), (0, None)]
 
-    solution = minimize(objective, x0, method='trust-constr', bounds=bounds, constraints=cons)
+    solution = minimize(objective, x0, method='trust-constr',constraints=cons, bounds=bounds)
 
     return solution.x
     
@@ -112,6 +112,9 @@ def OptionStrategy(model_estimate,date,trading_days):
     sc = result['Stock close']
     sc_next = result['Stock close next']
     market_estimate = result['Avg IV']
+
+    if (ceil(sc*(1+market_estimate/sqrt(365))) == ceil(sc)) or (floor(sc*(1-market_estimate/sqrt(365))) == floor(sc)):
+        return(f"IV too small to trade: {market_estimate}")
 
     signal = GetSignal(model_estimate,market_estimate)
 
