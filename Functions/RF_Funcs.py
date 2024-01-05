@@ -90,11 +90,16 @@ def GetRatios(sc,cc,pc,avg_IV):
     # x >= 0, y >= 0
     bounds = [(0, None), (0, None)]
 
-    solution = minimize(objective, x0, method='trust-constr',constraints=cons, bounds=bounds)
+    solution = minimize(objective, x0, method='TNC',constraints=cons)#, bounds=bounds)
 
-    return solution.x
+    return {'x': solution.x[0], 'y': solution.x[1], 'cons 1': constraint1(solution.x), 'cons 2': constraint2(solution.x)}
     
-
+def GetRatiosUnbounded(sc,cc,pc,avg_IV):
+    from scipy.optimize import fsolve
+    def func(x):
+        return (floor(sc) - (cc*x[0]+pc*x[1])/x[1]) - sc*(1-avg_IV/sqrt(365)), (ceil(sc) + (cc*x[0]+pc*x[1])/x[0]) - sc*(1+avg_IV/sqrt(365))
+    
+    return fsolve(func,[1,1],factor=.1,maxfev=1000)
 
 def OptionStrategy(model_estimate,date,trading_days):
     '''
@@ -118,8 +123,14 @@ def OptionStrategy(model_estimate,date,trading_days):
 
     signal = GetSignal(model_estimate,market_estimate)
 
-    x,y = GetRatios(sc,cc,pc,market_estimate)
+    #ratios = GetRatios(sc,cc,pc,market_estimate)
+    x,y = GetRatiosUnbounded(sc,cc,pc,market_estimate)#(ratios['x'], ratios['y']
 
+    if (x > 20) or (y > 20):
+        return(f"Solution too large: {round(x,2)} calls and {round(y,2)} puts.")
+    if (x < 0) or (y < 0):
+        return(f"IV too small to trade: {market_estimate}")
+    
     #profit = +- (payoff from x calls + payoff from y puts - initial cost)
     payoff_calls = x*max(sc_next - ceil(sc),0)
     payoff_puts = y*max(floor(sc)-sc_next,0)
@@ -127,4 +138,5 @@ def OptionStrategy(model_estimate,date,trading_days):
 
     profit = signal * (payoff_calls + payoff_puts - initial_cost)
 
-    return{'Profit': profit, 'Investment': initial_cost}
+    return{'Profit': round(profit,2), 'Investment': round(initial_cost,2), 'Return': f'{round(profit/initial_cost*100,2)}%',
+           'Results': result, '# Calls': round(x,3), '# Puts' :round(y,3)}
