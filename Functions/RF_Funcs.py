@@ -56,9 +56,8 @@ def GetSignal(model,market):
     else:
         return(-1)
     
-
-
-def GetRatios(sc,cc,pc,avg_IV):
+    
+def GetRatiosUnbounded(sc,cc,pc,avg_IV):
     '''
     Determine the number of puts and calls to buy such that the option strategy breaks even with the market's estimate for 
     next day's vol.
@@ -66,35 +65,8 @@ def GetRatios(sc,cc,pc,avg_IV):
     cc: Today's closing price for the closest above call strike expiring the next day.
     pc: Today's closing price for the closest below put strike expiring the next day.
     avg_IG: The market's estimate for next day vol based on the average IV of the closest above and below call and put strikes respectively (see IV_grab in polygonscrape.py).
-    Output: [#calls, #puts]
+    Output: (#calls, #puts)
     '''
-    from scipy.optimize import minimize
-    #Dummy function
-    def objective(x):
-        return 0 
-
-    #Constraint on lower intercept
-    def constraint1(x):
-        return (floor(sc) - (cc*x[0]+pc*x[1])/x[1]) - sc*(1-avg_IV/sqrt(365))
-
-    #Constraint on higher intercept
-    def constraint2(x):
-        return (ceil(sc) + (cc*x[0]+pc*x[1])/x[0]) - sc*(1+avg_IV/sqrt(365))
-
-    cons = [{'type': 'eq', 'fun': constraint1},
-            {'type': 'eq', 'fun': constraint2}]
-    
-    # Initial guess
-    x0 = [1, 1]
-
-    # x >= 0, y >= 0
-    bounds = [(0, None), (0, None)]
-
-    solution = minimize(objective, x0, method='TNC',constraints=cons)#, bounds=bounds)
-
-    return {'x': solution.x[0], 'y': solution.x[1], 'cons 1': constraint1(solution.x), 'cons 2': constraint2(solution.x)}
-    
-def GetRatiosUnbounded(sc,cc,pc,avg_IV):
     from scipy.optimize import fsolve
     def func(x):
         return (floor(sc) - (cc*x[0]+pc*x[1])/x[1]) - sc*(1-avg_IV/sqrt(365)), (ceil(sc) + (cc*x[0]+pc*x[1])/x[0]) - sc*(1+avg_IV/sqrt(365))
@@ -123,8 +95,7 @@ def OptionStrategy(model_estimate,date,trading_days):
 
     signal = GetSignal(model_estimate,market_estimate)
 
-    #ratios = GetRatios(sc,cc,pc,market_estimate)
-    x,y = GetRatiosUnbounded(sc,cc,pc,market_estimate)#(ratios['x'], ratios['y']
+    x,y = GetRatiosUnbounded(sc,cc,pc,market_estimate)
 
     if (x > 20) or (y > 20):
         return(f"Solution too large: {round(x,2)} calls and {round(y,2)} puts.")
@@ -140,3 +111,41 @@ def OptionStrategy(model_estimate,date,trading_days):
 
     return{'Profit': round(profit,2), 'Investment': round(initial_cost,2), 'Return': f'{round(profit/initial_cost*100,2)}%',
            'Results': result, '# Calls': round(x,3), '# Puts' :round(y,3)}
+
+
+
+# def GetRatios(sc,cc,pc,avg_IV):
+#     '''
+#     Determine the number of puts and calls to buy such that the option strategy breaks even with the market's estimate for 
+#     next day's vol.
+#     sc: Today's SPY closing price.
+#     cc: Today's closing price for the closest above call strike expiring the next day.
+#     pc: Today's closing price for the closest below put strike expiring the next day.
+#     avg_IG: The market's estimate for next day vol based on the average IV of the closest above and below call and put strikes respectively (see IV_grab in polygonscrape.py).
+#     Output: [#calls, #puts]
+#     '''
+#     from scipy.optimize import minimize
+#     #Dummy function
+#     def objective(x):
+#         return 0 
+
+#     #Constraint on lower intercept
+#     def constraint1(x):
+#         return (floor(sc) - (cc*x[0]+pc*x[1])/x[1]) - sc*(1-avg_IV/sqrt(365))
+
+#     #Constraint on higher intercept
+#     def constraint2(x):
+#         return (ceil(sc) + (cc*x[0]+pc*x[1])/x[0]) - sc*(1+avg_IV/sqrt(365))
+
+#     cons = [{'type': 'eq', 'fun': constraint1},
+#             {'type': 'eq', 'fun': constraint2}]
+    
+#     # Initial guess
+#     x0 = [1, 1]
+
+#     # x >= 0, y >= 0
+#     bounds = [(0, None), (0, None)]
+
+#     solution = minimize(objective, x0, method='TNC',constraints=cons)#, bounds=bounds)
+
+#     return {'x': solution.x[0], 'y': solution.x[1], 'cons 1': constraint1(solution.x), 'cons 2': constraint2(solution.x)}
