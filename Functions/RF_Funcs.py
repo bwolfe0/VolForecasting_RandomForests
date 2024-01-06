@@ -70,8 +70,8 @@ def GetRatiosUnbounded(sc,cc,pc,avg_IV):
     from scipy.optimize import fsolve
     def func(x):
         return (floor(sc) - (cc*x[0]+pc*x[1])/x[1]) - sc*(1-avg_IV/sqrt(365)), (ceil(sc) + (cc*x[0]+pc*x[1])/x[0]) - sc*(1+avg_IV/sqrt(365))
-    
-    return fsolve(func,[1,1],factor=.1,maxfev=1000)
+    sol = fsolve(func,[1,1],factor=.1,maxfev=5000)
+    return 1, sol[1]/sol[0]
 
 def OptionStrategy(model_estimate,date,trading_days):
     '''
