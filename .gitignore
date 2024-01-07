@@ -2,4 +2,4 @@ secret.py
 Testing_Files/
 __pycache__/
 .DS_Store
-Treasury.csv
+Data/Treasury.csv
