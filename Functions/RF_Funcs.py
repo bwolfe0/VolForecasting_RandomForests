@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
 import time
@@ -9,7 +10,7 @@ from math import ceil, floor
 from Functions.polygon_scrape import *
 
 
-def RollingWindowRF(X,Y,dates,w=300):
+def RollingWindowRF(X,Y,dates,w=300,method='mse'):
     '''
     For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
     X: Predictor dataframe.
@@ -32,7 +33,7 @@ def RollingWindowRF(X,Y,dates,w=300):
         y_train = Y.iloc[t-w:t]
 
         rf = RandomForestRegressor(n_estimators=200, random_state=10,min_samples_leaf=4, max_features=len(X.columns), 
-                                   max_depth=7,min_samples_split=4, n_jobs=-1).fit(x_train,y_train)
+                                   max_depth=7,min_samples_split=4, n_jobs=-1,criterion=method).fit(x_train,y_train)
 
         predictions[dates[t]] = rf.predict([X.iloc[t]])[0]
         feature_importance[dates[t]] = rf.feature_importances_
@@ -44,6 +45,34 @@ def RollingWindowRF(X,Y,dates,w=300):
 
     return {'predictions': predictions, 'mse': mse, 'mape': mape, 'runtime': fin, 'feature importance': feature_importance}
 
+
+def RollingWindowHAR(X,Y,dates,w=300):
+    if len(X) != len(Y):
+        raise ValueError("X and Y are not the same length")
+    
+    if len(X) < w:
+        raise ValueError("Window size is larger than dataset")
+    
+    start = time.time()
+
+    betas = pd.DataFrame(index=X.columns, columns=dates[w:])
+    predictions = pd.DataFrame(index=['values'],columns=dates[w:])
+    
+    for t in range(w,len(X)):
+        x_train = X.iloc[t-w:t]
+        y_train = Y.iloc[t-w:t]
+
+        lr = LinearRegression(n_jobs=-1).fit(x_train,y_train)
+
+        predictions[dates[t]] = lr.predict([X.iloc[t]])[0]
+        betas[dates[t]] = [lr.intercept_].append(lr.coef_)
+
+    mse = mean_squared_error(predictions.loc['values'],Y.iloc[w:])
+    mape = mean_absolute_percentage_error(predictions.loc['values'],Y.iloc[w:])
+
+    fin = time.time() - start
+
+    return {'predictions': predictions, 'mse': mse, 'mape': mape, 'runtime': fin, 'betas': betas}
 
 
 def GetSignal(model,market):
