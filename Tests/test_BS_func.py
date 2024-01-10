@@ -1,3 +1,6 @@
+import sys
+sys.path.append(sys.path[0][:-6])
+
 import unittest
 from Functions.BS_functions import *
 from numpy import exp
