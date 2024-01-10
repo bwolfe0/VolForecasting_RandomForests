@@ -164,7 +164,7 @@ def OptionStrategy(model_estimate,date,trading_days,verbose,data=None):
 
 
 
-def RunStrategy(model_estimate, dates, trading_days,results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
+def RunStrategy(model_estimate, dates, trading_days,comparison='mean',results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
     '''
     For all date in dates, execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
@@ -187,13 +187,15 @@ def RunStrategy(model_estimate, dates, trading_days,results_data=None,verbose=Fa
 
             try:
                 data = results_data.loc[date]
-                data['Avg Avg IV'] = np.sum(results_data['Avg IV'])/len(results_data)
+                if comparison=='mean': data['Avg Avg IV'] = np.mean(results_data['Avg IV'])
+                else: data['Avg Avg IV'] = np.median(results_data['Avg IV'])
             except:
                 ValueError("Input date not in datetime or suitable string format.")
         else:
             data = None
 
-        model_avg = np.sum(model_estimate['values'])/len(model_estimate)
+        if comparison=='mean': model_avg = np.mean(model_estimate['values'])
+        else: model_avg = np.median(model_estimate['values'])
         results.append(OptionStrategy(model_estimate.loc[date][0]/model_avg,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,verbose_signal,data))
         
         if verbose is True: print(f'{date}: {results[-1]}')
