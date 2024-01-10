@@ -83,7 +83,7 @@ def IV_grab(date, trading_days):
         
     #Trading Days Exception Handling
     if date not in trading_days:
-        raise ValueError("Not a valid trading day")
+        raise ValueError(f"Not a valid trading day: {date}")
     
     next_date = trading_days[trading_days.index(date)+1]
 
