@@ -155,7 +155,7 @@ def OptionStrategy(model_estimate,date,trading_days,verbose,data=None):
     
     #If result data is provided, API is not used
     else:       
-        signal = GetSignal(model_estimate,data['Avg IV'])
+        signal = GetSignal(model_estimate,data['Avg IV']/data['Avg Avg IV'])
         if verbose is True: 
             if signal == 1: print(f'{date}')
         Return = signal * data['Return [%]']
@@ -164,7 +164,7 @@ def OptionStrategy(model_estimate,date,trading_days,verbose,data=None):
 
 
 
-def RunStrategy(model_estimate, dates, trading_days,results_data=None,verbose=False,export=False, analysis=False):
+def RunStrategy(model_estimate, dates, trading_days,results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
     '''
     For all date in dates, execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
@@ -187,12 +187,14 @@ def RunStrategy(model_estimate, dates, trading_days,results_data=None,verbose=Fa
 
             try:
                 data = results_data.loc[date]
+                data['Avg Avg IV'] = np.sum(results_data['Avg IV'])/len(results_data)
             except:
                 ValueError("Input date not in datetime or suitable string format.")
         else:
             data = None
 
-        results.append(OptionStrategy(model_estimate.loc[date][0],dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,verbose,data))
+        model_avg = np.sum(model_estimate['values'])/len(model_estimate)
+        results.append(OptionStrategy(model_estimate.loc[date][0]/model_avg,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,verbose_signal,data))
         
         if verbose is True: print(f'{date}: {results[-1]}')
         if results_data is None: time.sleep(62)
@@ -204,7 +206,7 @@ def RunStrategy(model_estimate, dates, trading_days,results_data=None,verbose=Fa
     if analysis is True:
         return_time_series = []
         for i in range(len(results)):
-            return_time_series.append(np.sum([float(d['Return']) for d in results[:i]]))
+            return_time_series.append(np.sum([float(d['Return']) for d in results[:i+1]]))
             total_return = np.sum([d['Return'] for d in results])
         days_strategy_bought = np.sum([d['Signal'] for d in results if d['Signal']==1])
         print(f'Total return from {dates.iloc[0]}-{dates.iloc[-1]}: {int(total_return)}%. Average daily return: {round(total_return/len(dates),2)}%. Daily return variance: {round(np.std([d["Return"] for d in results]),2)}. Fraction of days when strategy is bought: {round(days_strategy_bought/len(dates),4)}')
