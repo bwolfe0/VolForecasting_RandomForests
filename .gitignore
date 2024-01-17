@@ -3,3 +3,4 @@ Testing_Files/
 __pycache__/
 .DS_Store
 Data/Treasury.csv
+.vscode/
