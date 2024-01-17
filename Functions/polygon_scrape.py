@@ -9,12 +9,12 @@ import math
 def prices_grab(date,next_date):
     '''
     Get the close prices of SPY, closest call strike above, and closest put below with next-day expiration.
-    Date: The day for which prices are aquired.
-    Output: {'Stock close': sc, 'Call close':cc, 'Put close': pc}
+    date: The day for which prices are aquired.
+    next_date: The next trading day after date.
+    Output: {'Stock close': sc, 'Call close':cc, 'Put close': pc}.
     '''
     #Create Client Objects
     OC = pg.OptionsClient(polygon_key)
-    RC = pg.reference_apis.reference_api.ReferenceClient(polygon_key)
     SC = pg.StocksClient(polygon_key)
 
     #Reformat Input
@@ -71,7 +71,8 @@ def IV_grab(date, trading_days):
     '''
     Get an average implied volatility at close for "date" based on the IV of the closest call strike above the closing price 
     and closest put price below with next-day expiration.. 
-    Date: The day for which prices are aquired.
+    date: The day for which prices are aquired.
+    trading_days: A list of valid trading days (see pandas_market_calendars).
     Output: {'Stock close': sc, 'Call close':cc, 'Put close': pc, 'Avg IV': avg_IV}
     '''
     #Data-type exception handling
