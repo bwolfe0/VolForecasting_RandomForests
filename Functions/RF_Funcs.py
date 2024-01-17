@@ -204,7 +204,11 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
 
 ########################### Fix Input Data Format ###########################
     for date in dates:
+
+        #model_estimate_dict['Nominal'] is the un-normalized estimate
         model_estimate_dict = {'Nominal':model_estimate_data.loc[date][0]}
+
+        #Convert date to a datetime object
         if results_data is not None:
             if isinstance(date, (dt.date, dt.datetime)) is True:
                 try:
@@ -218,9 +222,9 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
 
                 #Normalize IV data
                 if comparison=='mean': 
-                    data['Normalized Market Estimate'] = (data['Avg IV'] - np.mean(results_data['Avg IV'])) / (np.std(results_data['Avg IV'])/len(results_data['Avg IV']))
+                    data['Normalized Market Estimate'] = (data['Avg IV']/np.mean(results_data['Avg IV']))
                 else: 
-                    data['Normalized Market Estimate'] = (data['Avg IV'] - np.median(results_data['Avg IV'])) / (np.std(results_data['Avg IV'])/len(results_data['Avg IV']))
+                    data['Normalized Market Estimate'] = (data['Avg IV']/np.median(results_data['Avg IV']))
             except:
                 ValueError("Input date not in datetime or suitable string format.")
 
@@ -231,10 +235,10 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
         
         #Normalize model RV estimate data
         if comparison=='mean':
-            model_estimate_dict['Normalized'] = (model_estimate_dict['Nominal'] - np.mean(model_estimate_data['values']))/(np.std(model_estimate_data['values']/len(model_estimate_data['values'])))
+            model_estimate_dict['Normalized'] = (model_estimate_dict['Nominal']/np.mean(model_estimate_data['values']))
         else:
-            model_estimate_dict['Normalized'] = (model_estimate_dict['Nominal'] - np.median(model_estimate_data['values']))/(np.std(model_estimate_data['values']/len(model_estimate_data['values'])))
-        
+            model_estimate_dict['Normalized'] = (model_estimate_dict['Nominal']/np.median(model_estimate_data['values']))
+
         #Obtain the results of running the option trading strategy for date
         results.append(OptionStrategy(model_estimate_dict,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,verbose_signal,data))
         
