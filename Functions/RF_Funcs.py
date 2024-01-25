@@ -42,7 +42,7 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
                 data['Normalized Market Estimate'] = normalize_IV_data(data,results_data,comparison)
 
             except:
-                ValueError("Input date not in datetime or suitable string format.")
+                raise ValueError("Input date not in datetime or suitable string format.")
 
         else:
             data = None
