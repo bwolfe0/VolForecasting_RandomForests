@@ -4,3 +4,8 @@ __pycache__/
 .DS_Store
 Data/Treasury.csv
 .vscode/
+Trash.ipynb
+Feature_Selection/
+.env
+Data/Vix_Comparison.csv
+Data/More_RV_Features.csv
