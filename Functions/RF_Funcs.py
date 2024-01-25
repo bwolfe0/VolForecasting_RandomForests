@@ -11,7 +11,7 @@ from Functions.polygon_scrape import *
 import datetime as dt
 
 
-def RollingWindowRF(X,Y,dates,w=300,method='mse'):
+def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
     '''
     For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
     X: Predictor dataframe.
@@ -26,7 +26,12 @@ def RollingWindowRF(X,Y,dates,w=300,method='mse'):
     
     if len(X) < w:
         raise ValueError("Window size is larger than dataset")
-    
+
+    try:
+        RandomForestRegressor(criterion=method).fit([0,1],[1,2])
+    except:
+        method = {'mse': 'squared_error', 'mae': 'absolute_error'}[method]
+
     start = time.time()
 
     feature_importance = pd.DataFrame(index=X.columns, columns=dates[w:])
@@ -36,7 +41,7 @@ def RollingWindowRF(X,Y,dates,w=300,method='mse'):
         x_train = X.iloc[t-w:t]
         y_train = Y.iloc[t-w:t]
 
-        rf = RandomForestRegressor(n_estimators=200, random_state=10,min_samples_leaf=4, max_features=len(X.columns), 
+        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=4, max_features=len(X.columns), 
                                    max_depth=7,min_samples_split=4, n_jobs=-1,criterion=method).fit(x_train,y_train)
 
         predictions[dates[t]] = rf.predict([X.iloc[t]])[0]
