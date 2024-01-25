@@ -16,13 +16,13 @@ class test_poly_scrape(unittest.TestCase):
 
     def test_prices_grab(self):
         res = prices_grab(dt.date(2023,11,27),dt.date(2023,11,28))
-        self.assertEqual(454.48,res['Stock close']) #Test known values
-        self.assertEqual(.69,res['Call close'])
-        self.assertEqual(.64,res['Put close'])
+        self.assertEqual(454.48,res['stock_close']) #Test known values
+        self.assertEqual(.69,res['call_close'])
+        self.assertEqual(.64,res['put_close'])
 
     def test_IV_grab(self):
         res = IV_grab(dt.date(2023,11,27),trading_days)
-        self.assertAlmostEqual(0.094055,res['Avg IV']) #Test known value
+        self.assertAlmostEqual(0.094055,res['avg_IV']) #Test known value
 
     def test_IV_grab_exceptions(self):
         with self.assertRaises(ValueError):
