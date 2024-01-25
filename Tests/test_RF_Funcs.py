@@ -19,7 +19,7 @@ pred_RF = pd.read_csv('Data/predictions_RF.csv').set_index('date')
 pred_RF_MAE = pd.read_csv('Data/predictions_RF_MAE.csv').set_index('date')
 pred_HAR = pd.read_csv('Data/predictions_HAR.csv').set_index('date')
 
-dates = data['date'].iloc[-180:]
+dates = data['date'].iloc[-180:].reset_index(drop=True)
 
 class test_OptionStrategy(unittest.TestCase):
     def test_OptionStrategy_Output(self):
