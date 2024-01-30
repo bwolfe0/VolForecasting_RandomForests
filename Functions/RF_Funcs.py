@@ -16,12 +16,16 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
     For all date in dates, execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
     straddle is bought and vice versa.
+
+    Parameters:
     model_estimate: An estimate for volatility that is purportedly able to "beat the market."
     dates: The dates for which the strategy would be bought.
     trading_days: A list of relevant trading days.
     verbose: If True, prints out each result.
     export: If True, saves the results in a .csv. Output becomes [[{'Date','Return', 'Signal', 'Model Estimate', 'Market Estimate'},[return_time_series]]]
-    Output: [{'Date','Return', 'Signal', 'Model Estimate', 'Market Estimate'},...]
+
+    Returns:
+    dict: {A dictionary with keys 'Date', 'Return', 'Signal', 'Model Estimate', 'Market Estimate'}, and 'return_time_series' if analysis=True]
     '''
     if (results_data is None) and (comparison != 'mean'):
         raise ValueError('Comparison method must be mean when scraping data.')
@@ -46,8 +50,6 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
 
         else:
             data = None
-
-################################################################################
         
         #Normalize model RV estimate data
         if comparison=='mean':
@@ -90,12 +92,16 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
     Execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
     straddle is bought and vice versa.
+
+    Parameters:
     model_estimate: An estimate for volatility that is purportedly able to "beat the market."
     date: The date for which the strategy would be bought.
     trading_days: A list of relevant trading days.
     verbose: If True prints the trade signal where 1=buy and -1=sell.
     data: If None, pull
-    Output: {'Date','Return', 'Signal', 'Model Estimate', 'Market Estimate'}
+
+    Returns:
+    dict: {'Date','Return', 'Signal', 'Model Estimate', 'Market Estimate'}
     '''
     #If no result data are provided, data is pulled from API
     if data is None:
@@ -157,12 +163,16 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
 def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
     '''
     For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
+
+    Parameters:
     X: Predictor dataframe.
     Y: Target variable dataframe.
     dates: Series containing dates corresponding to X and Y data.
     w: Length of the rolling window--how many days back does the model fit to.
     method: Optimization method for sklearn.linearmodel.LinearRegression.
-    Output: {'predictions', 'mse', 'mape','runtime', 'feature importance'}
+
+    Returns:
+    dict: {'predictions', 'mse', 'mape','runtime', 'feature importance'}
     '''
     if len(X) != len(Y):
         raise ValueError("X and Y are not the same length")
@@ -212,12 +222,16 @@ def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
 def RollingWindowHAR(X,Y,dates,w=300):
     '''
     For timeseries data: fit the previous w days using the linear HAR model to predict the next day. Repeat for range(w+1,len(X)).
+
+    Parameters:
     X: Predictor dataframe.
     Y: Target variable dataframe.
     dates: Series containing dates corresponding to X and Y data.
     w: Length of the rolling window--how many days back does the model fit to.
     method: Optimization method for sklearn.linearmodel.LinearRegression.
-    Output: {'predictions', 'mse', 'mape','runtime', 'betas'}
+
+    Returns:
+    dict: {'predictions', 'mse', 'mape','runtime', 'betas'}
     '''
     if len(X) != len(Y):
         raise ValueError("X and Y are not the same length")
@@ -286,6 +300,7 @@ def datetime_to_string(date):
     
 
 def normalize_IV_data(data,results_data,comparison):
+    '''Normalizes an Implied Volatility value to its mean or median relative to historical data'''
     if comparison=='mean':
         return (data['Avg IV']/np.mean(results_data['Avg IV']))
     else: 
