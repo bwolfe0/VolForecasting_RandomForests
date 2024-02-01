@@ -1,7 +1,4 @@
-import sys
-sys.path.append(sys.path[0][:-len('/Tests')])
-
-import unittest
+import pytest
 from Functions.RF_Funcs import *
 import datetime as dt
 
@@ -21,31 +18,28 @@ pred_HAR = pd.read_csv('Data/predictions_HAR.csv').set_index('date')
 
 dates = data['date'].iloc[-180:].reset_index(drop=True)
 
-class test_OptionStrategy(unittest.TestCase):
+class TestOptionStrategy():
     def test_OptionStrategy_Output(self):
         res = OptionStrategy(0.1954844102369912,dt.date(2022,11,21),trading_days,verbose=False)
-        self.assertEqual(res['Return'], 91.39)
-        self.assertEqual(res['Signal'], 1)
+        assert res['Return'] == 91.39
+        assert res['Signal'] == 1
 
     def test_OptionStrategy_Input_Exceptions(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             OptionStrategy('5',dt.date(2022,11,21),trading_days,verbose=False)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             OptionStrategy(0.1954844102369912,'11-21-23',trading_days,verbose=False)
 
 
-class test_RunStrategy(unittest.TestCase):
+class TestRunStrategy():
     def test_RunStrategy_Output_HAR(self):
-        self.assertEqual(int(RunStrategy(pred_HAR, dates, trading_days,results_data=returns_data,analysis=True)[1][-1]),2098)
-        self.assertEqual(int(RunStrategy(pred_HAR, dates, trading_days,results_data=returns_data,comparison='median',analysis=True)[1][-1]),1557)
+        assert int(RunStrategy(pred_HAR, dates, trading_days,results_data=returns_data,analysis=True)[1][-1]) == 2098
+        assert int(RunStrategy(pred_HAR, dates, trading_days,results_data=returns_data,comparison='median',analysis=True)[1][-1]) == 1557
 
     def test_RunStrategy_Output_RF(self):
-        self.assertEqual(int(RunStrategy(pred_RF, dates, trading_days,results_data=returns_data,analysis=True)[1][-1]),1325)
-        self.assertEqual(int(RunStrategy(pred_RF, dates, trading_days,results_data=returns_data,comparison='median',analysis=True)[1][-1]),1071)
+        assert int(RunStrategy(pred_RF, dates, trading_days,results_data=returns_data,analysis=True)[1][-1]) == 1325
+        assert int(RunStrategy(pred_RF, dates, trading_days,results_data=returns_data,comparison='median',analysis=True)[1][-1]) == 1071
 
     # def test_RunStrategy_Input(self):
     #     with self.assertRaises(ValueError):
     #         rais
-
-if __name__ == '__main__':
-    unittest.main()
