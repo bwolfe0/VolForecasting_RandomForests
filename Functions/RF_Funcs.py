@@ -195,8 +195,8 @@ def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
         x_train = X.iloc[t-w:t]
         y_train = Y.iloc[t-w:t]
 
-        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=6, max_features=len(X.columns), 
-                                   max_depth=12,min_samples_split=6, n_jobs=-1,criterion=method).fit(x_train,y_train)
+        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=2, max_features=len(X.columns), 
+                                   max_depth=12,min_samples_split=2, n_jobs=-1,criterion=method).fit(x_train,y_train)
 
         predictions[dates[t]] = rf.predict([X.iloc[t]])[0]
         feature_importance[dates[t]] = rf.feature_importances_
