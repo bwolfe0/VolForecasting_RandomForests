@@ -14,7 +14,7 @@ def test_put_call_parity():
 
 def test_GetVega():
         assert pytest.approx(0.04884, rel=1e-3)  == GetVega(S=30,K=28,T=.2,r=.025,sigma=.53816)*.01 #Test known solution
-        assert pytest.approx(GetVega(S=30,K=28,T=.2,r=.025,sigma=.53816,flag='c')) == GetVega(S=30,K=28,T=.2,r=.025,sigma=.53816,flag='p', rel=1e-3) #Test Vega_call=Vega_put
+        assert pytest.approx(GetVega(S=30,K=28,T=.2,r=.025,sigma=.53816,flag='c'), rel=1e-3) == GetVega(S=30,K=28,T=.2,r=.025,sigma=.53816,flag='p') #Test Vega_call=Vega_put
         with pytest.raises(ValueError):
             GetVega(S=-5,K=28,T=.2,r=.025,sigma=.53816) #Test negative input
 

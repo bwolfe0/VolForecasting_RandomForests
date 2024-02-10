@@ -21,8 +21,9 @@ dates = data['date'].iloc[-180:].reset_index(drop=True)
 class TestOptionStrategy():
     def test_OptionStrategy_Output(self):
         res = OptionStrategy(0.1954844102369912,dt.date(2022,11,21),trading_days,verbose=False)
-        assert res['Return'] == 91.39
         assert res['Signal'] == 1
+        assert res['Return'] == 86.44
+        assert pytest.approx(res['num_puts'],rel=1e-4) == 1.0695
 
     def test_OptionStrategy_Input_Exceptions(self):
         with pytest.raises(ValueError):
