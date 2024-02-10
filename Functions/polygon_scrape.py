@@ -6,6 +6,7 @@ from secret import polygon_key
 from Functions.BS_functions import *
 import math
 from typing import Union
+import numpy as np
 
 def IV_grab(date, trading_days):
     """
@@ -35,13 +36,21 @@ def IV_grab(date, trading_days):
     res = prices_grab(date,next_date)
     
     sc = res['stock_close']
-    cc = res['call_close']
-    pc = res['put_close']
+    call_close = res['call_close']
+    put_close = res['put_close']
+    call_vols = res['call_vols']
+    put_vols = res['put_vols']
 
     #Find IV for both derivatives, find average
-    call_IV = GetIV(target_value=cc,S=sc,K=math.ceil(sc),r=.05375,T=1/365,flag='c')['IV']
-    put_IV = GetIV(target_value=pc,S=sc,K=math.floor(sc),r=.05375,T=1/365,flag='p')['IV']
-    avg_IV = (call_IV + put_IV)/2
+    call_IV = [GetIV(target_value=cc,S=sc,K=math.ceil(sc),r=.05375,T=1/365,flag='c')['IV'] for cc in call_close]
+    put_IV = [GetIV(target_value=pc,S=sc,K=math.floor(sc),r=.05375,T=1/365,flag='p')['IV'] for pc in put_close]
+
+    #Take weighted average where strikes closer to ATM are more heavily we
+    sum = 0
+    for j in range(len(call_close)):
+        sum += call_close[j]*call_vols[j] + put_close[j]*put_vols[j]
+    
+    avg_IV = sum / (np.sum(call_vols) + np.sum(put_vols))
 
     res['avg_IV'] = avg_IV
 
@@ -92,33 +101,39 @@ def prices_grab(date,next_date):
 
 
     #Pull close of higher strike call and lower strike put relative to stock close
-    call_strike = str(math.ceil(sc))
-    put_strike = str(math.floor(sc))
+    c = math.ceil(sc)
+    p = math.floor(sc)
+    call_strikes = [str(c+j) for j in range(3)]
+    put_strikes = [str(p-j) for j in range(3)]
 
-    call_pull = OC.get_daily_open_close('O:SPY'+tick_date+'C00'+call_strike+'000', date=date_string)
-    put_pull = OC.get_daily_open_close('O:SPY'+tick_date+'P00'+put_strike+'000', date=date_string)
+    call_pull = [OC.get_daily_open_close('O:SPY'+tick_date+'C00'+cs+'000', date=date_string) for cs in call_strikes]
+    put_pull = [OC.get_daily_open_close('O:SPY'+tick_date+'P00'+ps+'000', date=date_string) for ps in put_strikes]
 
     #Ensure that option data has been pulled
-    if 'message' in call_pull:
-        raise LookupError(f"{call_pull['message']}")
-    if 'message' in put_pull:
-        raise LookupError(f"{put_pull['message']}")
+    for j in range(len(call_pull)):
+        if 'message' in call_pull[j]:
+            raise LookupError(f"{call_pull['message']}")
+        if 'message' in put_pull[j]:
+            raise LookupError(f"{put_pull['message']}")
 
     #Ensure that 'close' index exists
     try:
-        cc = call_pull['close']
-        pc = put_pull['close']
+        call_close = [cp['close'] for cp in call_pull]
+        call_vols = [cp['volume'] for cp in call_pull]
+        put_close = [pp['close'] for pp in put_pull]
+        put_vols = [pp['volume'] for pp in put_pull]
     except KeyError:
         raise LookupError("Data not found.")
 
-    return {'stock_close': sc,'stock_close_next':sc_next, 'call_close':cc, 'put_close': pc}
+    return {'stock_close': sc,'stock_close_next':sc_next, 'call_close':call_close, 'put_close': put_close, 
+            'call_vols': call_vols, 'put_vols': put_vols}
 
 
 def to_datetime(date):
     """Converts 'date' from a string to a datetime object if needed"""
     if isinstance(date, (dt.date, dt.datetime)) is False:
         try:
-            return dt.datetime.strptime(date,'%Y-%m-%d')
+            return dt.datetime.strptime(date,'%Y-%m-%d').date()
         except:
             raise ValueError("Input date not in datetime or suitable string format.")
     else:
