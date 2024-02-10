@@ -48,7 +48,7 @@ def IV_grab(date, trading_days):
     #Take weighted average where strikes closer to ATM are more heavily we
     sum = 0
     for j in range(len(call_close)):
-        sum += call_close[j]*call_vols[j] + put_close[j]*put_vols[j]
+        sum += call_IV[j]*call_vols[j] + put_IV[j]*put_vols[j]
     
     avg_IV = sum / (np.sum(call_vols) + np.sum(put_vols))
 
