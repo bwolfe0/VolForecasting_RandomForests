@@ -108,8 +108,8 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
         #Get the avg IV of the lower strike put and higher strike call, and the SPY close price for date and the next trading day
         result = IV_grab(date,trading_days)
 
-        cc = result['call_close']
-        pc = result['put_close']
+        cc = result['call_close'][0]
+        pc = result['put_close'][0]
         sc = result['stock_close']
         sc_next = result['stock_close_next']
         market_estimate = result['avg_IV']
@@ -148,7 +148,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
         profit = signal * (payoff_calls + payoff_puts - initial_cost)
         Return = round(profit/initial_cost*100,2)
 
-        return{'Return': Return, 'Signal': signal, 'Model Estimate': model_estimate_dict['nominal'], 'Market Estimate': market_estimate}
+        return{'Return': Return, 'Signal': signal, 'Model Estimate': model_estimate_dict['nominal'], 'Market Estimate': market_estimate, 'num_puts': y}
     
     #If result data is provided, API is not used
     else:
