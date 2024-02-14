@@ -1,5 +1,6 @@
 from scipy.stats import norm
 from numpy import exp, log,sqrt
+import pandas as pd
 
 N = norm.cdf
 n = norm.pdf

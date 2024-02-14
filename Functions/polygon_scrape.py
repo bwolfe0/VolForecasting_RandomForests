@@ -8,7 +8,7 @@ import math
 from typing import Union
 import numpy as np
 
-def IV_grab(date, trading_days):
+def IV_grab(date, trading_days, r):
     """
     Get an average implied volatility at close for "date" based on the IV of the closest call strike above the closing price 
     and closest put price below with next-day expiration.
@@ -42,8 +42,8 @@ def IV_grab(date, trading_days):
     put_vols = res['put_vols']
 
     # Find IV for both derivatives, find average
-    call_IV = [GetIV(target_value=cc,S=sc,K=math.ceil(sc),r=.05375,T=1/365,flag='c')['IV'] for cc in call_close]
-    put_IV = [GetIV(target_value=pc,S=sc,K=math.floor(sc),r=.05375,T=1/365,flag='p')['IV'] for pc in put_close]
+    call_IV = [GetIV(target_value=cc,S=sc,K=math.ceil(sc),r=r.loc[f"{date.month}/{date.day}/{date.year % 100}"]['r']/100,T=1/365,flag='c')['IV'] for cc in call_close]
+    put_IV = [GetIV(target_value=pc,S=sc,K=math.floor(sc),r=r.loc[f"{date.month}/{date.day}/{date.year % 100}"]['r']/100,T=1/365,flag='p')['IV'] for pc in put_close]
 
     # Take weighted average where strikes closer to ATM are more heavily we
     sum = 0
@@ -93,7 +93,7 @@ def prices_grab(date,next_date):
     try:
         sc = stock_pull['close']
     except:
-        raise KeyError(f"Data not found for 'date'")
+        raise KeyError(f"Data not found for {date}")
     try:
         sc_next = stock_pull_next['close']
     except:

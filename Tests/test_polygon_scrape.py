@@ -1,5 +1,6 @@
 import pytest
 from Functions.polygon_scrape import *
+import datetime as dt
 
 import pandas_market_calendars as mcal
 nyse = mcal.get_calendar('NYSE')
@@ -7,6 +8,10 @@ start_date = '2020-01-01'
 end_date = '2024-2-10'
 schedule = nyse.schedule(start_date=start_date, end_date=end_date)
 trading_days = schedule['market_open'].dt.date.tolist()
+
+r = pd.read_csv('Data/EFFR.csv')
+r.dropna(axis=0, inplace=True)
+r.set_index('date',inplace=True)
 
 
 def test_prices_grab_1():
@@ -24,12 +29,12 @@ def test_prices_grab_2():
     assert [101673, 81431, 86374] == res['put_vols']
 
 def test_IV_grab():
-    res = IV_grab(dt.date(2024,2,5),trading_days)
-    assert pytest.approx(0.076218, rel=1e-4) == res['avg_IV'] #Test known value
+    res = IV_grab(dt.date(2020,9,1), trading_days,r)
+    assert pytest.approx(0.1016, rel=1e-3) == res['avg_IV'] #Test known value
 
 def test_IV_grab_exceptions():
     with pytest.raises(ValueError):
-        IV_grab(dt.date(2023,12,3),trading_days)
+        IV_grab(dt.date(2023,12,3),trading_days,r)
         IV_grab(5)
 
 
