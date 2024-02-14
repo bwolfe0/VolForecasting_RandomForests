@@ -201,19 +201,9 @@ def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
         predictions[dates[t]] = rf.predict([X.iloc[t]])[0]
         feature_importance[dates[t]] = rf.feature_importances_
 
-        try:
-            X_HAR = X[['RV_(t-1)', 'RV_t Weekly', 'RV_t Monthly']]
-            x_train_har = X_HAR.iloc[t-w:t]
-        except:
-            raise KeyError('HAR Parameters not found')
-        
-        har = LinearRegression().fit(x_train_har,y_train)
-        har_prediction[dates[t]] = har.predict([X_HAR.iloc[t]])[0]
-
     mse = mean_squared_error(predictions.loc['values'],Y.iloc[w:])
     mape = mean_absolute_percentage_error(predictions.loc['values'],Y.iloc[w:])
-    relative_r_sqr = 1 - np.sum((predictions.loc['values'].reset_index(drop=True) - Y.iloc[w:].reset_index(drop=True))**2) / np.sum((har_prediction.loc['values'].reset_index(drop=True) - Y.iloc[w:].reset_index(drop=True))**2)
-
+    relative_r_sqr = 1 - mse/(1.859e-8) # denominator is baseline for HAR w=300, date range 8/23/18-8/10/23
     fin = time.time() - start
 
     return {'predictions': predictions, 'mse': mse, 'mape': mape, 'relative_r_squared': relative_r_sqr, 'runtime': fin, 'feature_importance': feature_importance}
