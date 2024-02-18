@@ -8,7 +8,7 @@ import math
 from typing import Union
 import numpy as np
 
-def IV_grab(date, trading_days, r):
+def IV_grab(date, trading_days, r, num_strikes=1):
     """
     Get an average implied volatility at close for "date" based on the IV of the closest call strike above the closing price 
     and closest put price below with next-day expiration.
@@ -33,7 +33,7 @@ def IV_grab(date, trading_days, r):
     next_expiry_date = find_next_expiry_date(date,trading_days)
 
     # Get underlying, call, and put closing prices
-    res = prices_grab(date,next_expiry_date)
+    res = prices_grab(date,next_expiry_date,num_strikes)
     
     sc = res['stock_close']
     call_close = res['call_close']
@@ -56,7 +56,7 @@ def IV_grab(date, trading_days, r):
 
     return res
 
-def prices_grab(date,next_date):
+def prices_grab(date,next_date,num_strikes):
     """
     Get the close prices of SPY, closest call strike above, and closest put below with next-day expiration.
 
@@ -103,8 +103,8 @@ def prices_grab(date,next_date):
     # Pull close of higher strike call and lower strike put relative to stock close
     c = math.ceil(sc)
     p = math.floor(sc)
-    call_strikes = [str(c+j) for j in range(3)]
-    put_strikes = [str(p-j) for j in range(3)]
+    call_strikes = [str(c+j) for j in range(num_strikes)]
+    put_strikes = [str(p-j) for j in range(num_strikes)]
 
     call_pull = pull_call_data(tick_date,date_string,OC,call_strikes)
     put_pull = pull_put_data(tick_date,date_string,OC,put_strikes)
@@ -156,19 +156,20 @@ def find_next_expiry_date(date, trading_days):
     # Determine the next valid expiry day based on the day of the week for the given date
     weekday = date.weekday()
 
-    # Logic to adjust the index based on the current day of the week
-    if weekday == 0:  # Monday
-            steps_forward = 2  # Target Wednesday
-    elif weekday == 2:  # Wednesday
-        steps_forward = 2  # Target Friday
-    else:  # Tuesday, Thursday, Friday
-        steps_forward = 1 
+    if date >= dt.date(2022,11,14):
+        return trading_days[date_index + 1]
+    else:
+        # Logic to adjust the index based on the current day of the week
+        if weekday == 0:  # Monday
+                steps_forward = 2  # Target Wednesday
+        elif weekday == 2:  # Wednesday
+            steps_forward = 2  # Target Friday
+        else:  # Tuesday, Thursday, Friday
+            steps_forward = 1 
 
     # Adjusting steps to find the next expiry within the trading days list
-    # This ensures we skip over holidays and weekends properly
     next_expiry_date_index = min(date_index + steps_forward, len(trading_days) - 1)
     
-    # Ensuring the index is within bounds and finding the next valid expiry date
     return trading_days[next_expiry_date_index]
 
 
