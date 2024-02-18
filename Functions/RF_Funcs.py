@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
+from sklearn.model_selection import KFold, cross_val_score
 import time
 import warnings
 warnings.filterwarnings('ignore')
@@ -189,7 +190,6 @@ def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
 
     feature_importance = pd.DataFrame(index=X.columns, columns=dates[w:])
     predictions = pd.DataFrame(index=['values'],columns=dates[w:])
-    har_prediction = pd.DataFrame(index=['values'],columns=dates[w:])
     
     for t in range(w,len(X)):
         x_train = X.iloc[t-w:t]
@@ -295,3 +295,68 @@ def normalize_IV_data(data,results_data,comparison):
         return (data['Avg IV']/np.mean(results_data['Avg IV']))
     else: 
         return (data['Avg IV']/np.median(results_data['Avg IV']))
+    
+
+##############################
+# Not fully functional, ignore
+##############################
+
+
+# def RollingWindowRF_Resample(X,Y,dates,w=300,n_trees=200,method='mse'):
+#     '''
+#     For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
+
+#     Parameters:
+#     X: Predictor dataframe.
+#     Y: Target variable dataframe.
+#     dates: Series containing dates corresponding to X and Y data.
+#     w: Length of the rolling window--how many days back does the model fit to.
+#     method: Optimization method for sklearn.linearmodel.LinearRegression.
+
+#     Returns:
+#     dict: {'predictions', 'mse', 'mape','runtime', 'feature importance'}
+#     '''
+#     if len(X) != len(Y):
+#         raise ValueError("X and Y are not the same length")
+    
+#     if len(X) < w:
+#         raise ValueError("Window size is larger than dataset")
+
+#     try:
+#         RandomForestRegressor(criterion=method).fit([0,1],[1,2])
+#     except:
+#         method = {'mse': 'squared_error', 'mae': 'absolute_error'}[method]
+
+#     start = time.time()
+
+#     feature_importance = pd.DataFrame(index=X.columns, columns=dates[w:])
+#     predictions = pd.DataFrame(index=['values'],columns=dates[w:])
+    
+#     for t in range(w,len(X)):
+#         X_w = X.iloc[t-w:t]
+#         y_w = Y.iloc[t-w:t]
+
+#         kf = KFold(n_splits=10)
+
+#         models = []
+#         scores = []
+#         for train_index, val_index in kf.split(X_w):
+#             X_train, X_val = X_w.iloc[train_index], X_w.iloc[val_index]
+#             y_train, y_val = y_w.iloc[train_index], y_w.iloc[val_index]
+#             model = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=2, max_features=len(X.columns), 
+#                                    max_depth=12,min_samples_split=2, n_jobs=-1,criterion=method)
+#             model.fit(X_train, y_train)
+#             models.append(model)
+#             scores.append(model.score(X_val, y_val))
+        
+#         best_model = models[scores.index(max(scores))]
+
+#         predictions[dates[t]] = best_model.predict([X.iloc[t]])[0]
+#         feature_importance[dates[t]] = best_model.feature_importances_
+
+#     mse = mean_squared_error(predictions.loc['values'],Y.iloc[w:])
+#     mape = mean_absolute_percentage_error(predictions.loc['values'],Y.iloc[w:])
+#     relative_r_sqr = 1 - mse/(1.859e-8) # denominator is baseline for HAR w=300, date range 8/23/18-8/10/23
+#     fin = time.time() - start
+
+#     return {'predictions': predictions, 'mse': mse, 'mape': mape, 'relative_r_squared': relative_r_sqr, 'runtime': fin, 'feature_importance': feature_importance}
