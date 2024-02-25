@@ -74,15 +74,41 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh
             return_time_series.append(np.sum([float(d['Return']) for d in results[:i+1]]))
         
         #Determine the cumulative sum over all days the strategy was employed
-        total_return = np.sum([d['Return'] for d in results])
+        total_return = np.sum(d['Return'] for d in results)
+        betting_return = betting_strategy(results)
         
         #Determine the fraction of days where the strategy is bought
         days_strategy_bought = np.sum([d['Signal'] for d in results if d['Signal']==1])
-        print(f'Total return from {dates.iloc[0]}-{dates.iloc[-1]}: {int(total_return)}%. Average daily return: {round(total_return/len(dates),2)}%. Daily return variance: {round(np.std([d["Return"] for d in results]),2)}. Fraction of days when strategy is bought: {round(days_strategy_bought/len(dates),4)}')
-        return [results,return_time_series]
+        print(f'Total return from {dates.iloc[0]}-{dates.iloc[-1]}: ${round(betting_return[-1],0)}. Average daily return: {round(total_return/len(dates),2)}%. Daily return variance: {round(np.std([d["Return"] for d in results]),2)}. Fraction of days when strategy is bought: {round(days_strategy_bought/len(dates),4)}')
+        return [results,betting_return]
     
     return results
 
+
+def betting_strategy(results):
+    bet = 1
+    rturn = [0]
+    if results[0]['Return'] > 0: last = 'W'
+    else: last = 'L'
+    for i, _ in enumerate(results):
+        if i == 0: bet = 1
+        elif results[i-1]['Return'] < 0: 
+            if last == 'L':
+                bet=bet*.9
+            else:
+                bet = 1
+            last = 'L'
+        elif results[i-1]['Return'] > 1: 
+            if last == 'W':
+                bet = bet*1.1
+            else:
+                bet = 1
+            last = 'W'
+        rturn.append(
+            rturn[-1] + results[i]['Return']*bet
+        )
+    return rturn
+        
 
 
 def OptionStrategy(model_estimate_dict,date,trading_days,r,thresh,num_strikes=1,verbose=False,data=None):
@@ -104,7 +130,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,r,thresh,num_strikes=1,
     #If no result data are provided, data is pulled from API
     if data is None:
         #Get the avg IV of the lower strike put and higher strike call, and the SPY close price for date and the next trading day
-        result = IV_grab(date,trading_days,r,num_strikes)
+        result = calculate_IV(date,trading_days,r,num_strikes)
 
         cc = result['call_close'][0]
         pc = result['put_close'][0]
