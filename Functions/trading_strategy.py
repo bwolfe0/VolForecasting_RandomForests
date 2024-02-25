@@ -12,7 +12,7 @@ from Functions.polygon_scrape import *
 import datetime as dt
 
 
-def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
+def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh,comparison='mean',results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
     '''
     For all date in dates, execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
@@ -59,12 +59,9 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
             model_estimate_dict['Normalized'] = (model_estimate_dict['nominal']/np.median(model_estimate_data['values']))
 
         #Obtain the results of running the option trading strategy for date
-        results.append(OptionStrategy(model_estimate_dict,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,verbose_signal,data))
+        results.append(OptionStrategy(model_estimate_dict,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,r,thresh,num_strikes,verbose_signal,data))
         
         if verbose is True: print(f'{date}: {results[-1]}')
-
-        #If data is being scraped, must account for 5 API call/minute restriction
-        if results_data is None: time.sleep(62)
         
     if export is True: 
         result_df = pd.DataFrame(data=results, index=dates)
@@ -88,7 +85,7 @@ def RunStrategy(model_estimate_data, dates, trading_days,comparison='mean',resul
 
 
 
-def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
+def OptionStrategy(model_estimate_dict,date,trading_days,r,thresh,num_strikes=1,verbose=False,data=None):
     '''
     Execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
@@ -107,7 +104,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
     #If no result data are provided, data is pulled from API
     if data is None:
         #Get the avg IV of the lower strike put and higher strike call, and the SPY close price for date and the next trading day
-        result = IV_grab(date,trading_days)
+        result = IV_grab(date,trading_days,r,num_strikes)
 
         cc = result['call_close'][0]
         pc = result['put_close'][0]
@@ -115,8 +112,8 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
         sc_next = result['stock_close_next']
         market_estimate = result['avg_IV']
 
-        #Normalize the market estimate based on historical average and std deviation from 11/21/22 to 8/10/23 (See Data/Summary_Stats_for_IV_Data.ipynb)
-        normalized_market_estimate = (result['avg_IV'] - .189)/(.0723/sqrt(180))
+        #Normalize the market estimate based on historical average and std deviation from 4/1/19 to 8/10/23 (See Data/Summary_Stats_for_IV_Data.ipynb)
+        normalized_market_estimate = result['avg_IV'] / .26
 
         #If implied vol does not suggest a move past the first strike in each direction, trade cannot work
         if (ceil(sc*(1+market_estimate/sqrt(365))) == ceil(sc)) or (floor(sc*(1-market_estimate/sqrt(365))) == floor(sc)):
@@ -125,10 +122,12 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
         #Determine if the strategy should be bought or sold based on the model's prediction.
         #If model_estimate_dict is not a dictionary, it should be an integer. This represents when the function is run with
         #only a single model estimate and not a list. Thus, the estiamte cannot be normalized to the list average/median.
-        if model_estimate_dict is type(dict):
-            signal = GetSignal(model_estimate_dict['Normalized'],normalized_market_estimate)
-        elif type(model_estimate_dict) in [int,float]:
-            signal = GetSignal((model_estimate_dict-.13)/(.033/sqrt(180)),normalized_market_estimate)
+    
+
+        if isinstance(model_estimate_dict, dict):
+            signal = GetSignal(model_estimate_dict['Normalized'],normalized_market_estimate,thresh)
+        elif isinstance(model_estimate_dict, (int, float)):
+            signal = GetSignal((model_estimate_dict/.13),normalized_market_estimate,thresh)
             model_estimate_dict = {'nominal':model_estimate_dict}
         else:
             raise ValueError(f'Model estimate value invalid: {model_estimate_dict}')
@@ -153,7 +152,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,verbose,data=None):
     
     #If result data is provided, API is not used
     else:
-        signal = GetSignal(model_estimate_dict['Normalized'],data['Normalized Market Estimate'])
+        signal = GetSignal(model_estimate_dict['Normalized'],data['Normalized Market Estimate'],thresh)
         if verbose is True: 
             if signal == 1: print(f'{date}')
         Return = signal * data['Return [%]']
@@ -251,12 +250,12 @@ def RollingWindowHAR(X,Y,dates,w=300):
     return {'predictions': predictions, 'mse': mse, 'mape': mape, 'runtime': fin, 'betas': betas}
 
 
-def GetSignal(model,market):
+def GetSignal(model,market,thresh):
     '''
     Determine whether to buy or sell the straddle strategy. If the model prediction is higher than the market's, the strategy
     is bought and vice versa.
     '''
-    if model >= market:
+    if model >= thresh * market:
         return(1)
     else:
         return(-1)
