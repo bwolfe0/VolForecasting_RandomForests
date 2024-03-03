@@ -10,6 +10,7 @@ warnings.filterwarnings('ignore')
 from math import ceil, floor
 from Functions.polygon_scrape import *
 import datetime as dt
+import shap
 
 
 def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh,comparison='mean',results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
@@ -186,7 +187,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,r,thresh,num_strikes=1,
         return {'Date':date,'Return': Return, 'Signal': signal, 'Model Estimate': model_estimate_dict, 'Market Estimate': data['Avg IV']}
     
 
-def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
+def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse',mf=None,SHAP=False):
     '''
     For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
 
@@ -211,24 +212,36 @@ def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse'):
     except:
         method = {'mse': 'squared_error', 'mae': 'absolute_error'}[method]
 
+    if mf is None:
+        mf = len(X.columns)
+
     start = time.time()
 
     feature_importance = pd.DataFrame(index=X.columns, columns=dates[w:])
     predictions = pd.DataFrame(index=['values'],columns=dates[w:])
+    shap_values_df = pd.DataFrame()
     
     for t in range(w,len(X)):
         x_train = X.iloc[t-w:t]
         y_train = Y.iloc[t-w:t]
 
-        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=2, max_features=len(X.columns), 
+        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=2, max_features=mf, 
                                    max_depth=12,min_samples_split=2, n_jobs=-1,criterion=method).fit(x_train,y_train)
 
         predictions[dates[t]] = rf.predict([X.iloc[t]])[0]
         feature_importance[dates[t]] = rf.feature_importances_
 
+        if SHAP is True:
+            explainer = shap.Explainer(rf)
+            shap_values = explainer.shap_values(X.iloc[t])
+            shap_values_df = pd.concat([shap_values_df, pd.Series(shap_values)],axis=1)
+
+
     mse = mean_squared_error(predictions.loc['values'],Y.iloc[w:])
     mape = mean_absolute_percentage_error(predictions.loc['values'],Y.iloc[w:])
     relative_r_sqr = 1 - mse/(1.859e-8) # denominator is baseline for HAR w=300, date range 8/23/18-8/10/23
+    if SHAP is True:
+        feature_importance = shap_values_df.values
     fin = time.time() - start
 
     return {'predictions': predictions, 'mse': mse, 'mape': mape, 'relative_r_squared': relative_r_sqr, 'runtime': fin, 'feature_importance': feature_importance}
