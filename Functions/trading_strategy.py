@@ -13,7 +13,7 @@ import datetime as dt
 import shap
 
 
-def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh,comparison='mean',results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
+def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes = 1,comparison='mean',results_data=None,verbose=False,verbose_signal=False,export=False, analysis=False):
     '''
     For all date in dates, execute (buy or sell) a straddle using the closest call strike above and closest put strike below to SPY's close. The decision
     to buy or sell the strategy is determined by comparing the model estimate to the markets. If the model estimate is higher, the
@@ -34,13 +34,13 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh
     
     results = []
 
-########################### Fix Input Data Format ###########################
     for date in dates:
-        #model_estimate_dict['nominal'] is the un-normalized estimate
+        # model_estimate_dict['nominal'] is the un-normalized estimate
         model_estimate_dict = {'nominal':model_estimate_data.loc[date][0]}
 
-        #Convert date to a datetime object
+        # If results_data are provided, then market estimate can be achieved without pullin from API
         if results_data is not None:
+            # Convert date to a datetime object
             date = datetime_to_string(date)
             try:
                 #Extract IV information from input data
@@ -50,16 +50,17 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh
             except:
                 raise ValueError("Input date not in datetime or suitable string format.")
 
+        # If no results_data are provided, all the necessary information will be pulled from API
         else:
             data = None
         
-        #Normalize model RV estimate data
+        # Normalize model RV estimate data
         if comparison=='mean':
             model_estimate_dict['Normalized'] = (model_estimate_dict['nominal']/np.mean(model_estimate_data['values']))
         else:
             model_estimate_dict['Normalized'] = (model_estimate_dict['nominal']/np.median(model_estimate_data['values']))
 
-        #Obtain the results of running the option trading strategy for date
+        # Obtain the results of running the option trading strategy for date
         results.append(OptionStrategy(model_estimate_dict,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,r,thresh,num_strikes,verbose_signal,data))
         
         if verbose is True: print(f'{date}: {results[-1]}')
@@ -69,19 +70,19 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, num_strikes, thresh
         result_df.to_csv('Results/results_'+dt.date.today().strftime('%m/%d/%y')+'.csv')
 
     if analysis is True:
-        #Return_time_series is the sum of daily returns from t=0 to t=i
+        # Return_time_series is the sum of daily returns from t=0 to t=i
         return_time_series = []
         for i in range(len(results)):
             return_time_series.append(np.sum([float(d['Return']) for d in results[:i+1]]))
         
-        #Determine the cumulative sum over all days the strategy was employed
+        # Determine the cumulative sum over all days the strategy was employed
         total_return = np.sum(d['Return'] for d in results)
         betting_return = betting_strategy(results)
         
         #Determine the fraction of days where the strategy is bought
         days_strategy_bought = np.sum([d['Signal'] for d in results if d['Signal']==1])
-        print(f'Total return from {dates.iloc[0]}-{dates.iloc[-1]}: ${round(betting_return[-1],0)}. Average daily return: {round(total_return/len(dates),2)}%. Daily return variance: {round(np.std([d["Return"] for d in results]),2)}. Fraction of days when strategy is bought: {round(days_strategy_bought/len(dates),4)}')
-        return [results,betting_return]
+        # print(f'Total return from {dates.iloc[0]}-{dates.iloc[-1]}: ${round(total_return,0)}. Average daily return: {round(total_return/len(dates),2)}%. Daily return variance: {round(np.std([d["Return"] for d in results]),2)}. Fraction of days when strategy is bought: {round(days_strategy_bought/len(dates),4)}')
+        return [results,return_time_series]
     
     return results
 
@@ -154,7 +155,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,r,thresh,num_strikes=1,
         if isinstance(model_estimate_dict, dict):
             signal = GetSignal(model_estimate_dict['Normalized'],normalized_market_estimate,thresh)
         elif isinstance(model_estimate_dict, (int, float)):
-            signal = GetSignal((model_estimate_dict/.13),normalized_market_estimate,thresh)
+            signal = GetSignal((model_estimate_dict/.124),normalized_market_estimate,thresh)
             model_estimate_dict = {'nominal':model_estimate_dict}
         else:
             raise ValueError(f'Model estimate value invalid: {model_estimate_dict}')
