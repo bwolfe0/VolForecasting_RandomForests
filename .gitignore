@@ -11,3 +11,5 @@ Data/Vix_Comparison.csv
 Data/More_RV_Features.csv
 Data/SampleOptionsData.csv
 Minimal_Feature_Model_Comparison.ipynb
+env/
+Data/run_option_strategy.py
