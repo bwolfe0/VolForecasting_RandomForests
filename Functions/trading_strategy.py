@@ -33,6 +33,7 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes
         raise ValueError('Comparison method must be mean when scraping data.')
     
     results = []
+    step = 0
 
     for date in dates:
         # model_estimate_dict['nominal'] is the un-normalized estimate
@@ -63,6 +64,8 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes
         # Obtain the results of running the option trading strategy for date
         results.append(OptionStrategy(model_estimate_dict,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,r,thresh,num_strikes,verbose_signal,data))
         
+        step += 1
+
         if verbose is True: print(f'{date}: {results[-1]}')
         
     if export is True: 
@@ -77,7 +80,7 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes
         
         # Determine the cumulative sum over all days the strategy was employed
         total_return = np.sum(d['Return'] for d in results)
-        betting_return = betting_strategy(results)
+        # betting_return = betting_strategy(results)
         
         #Determine the fraction of days where the strategy is bought
         days_strategy_bought = np.sum([d['Signal'] for d in results if d['Signal']==1])
@@ -87,29 +90,29 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes
     return results
 
 
-def betting_strategy(results):
-    bet = 1
-    rturn = [0]
-    if results[0]['Return'] > 0: last = 'W'
-    else: last = 'L'
-    for i, _ in enumerate(results):
-        if i == 0: bet = 1
-        elif results[i-1]['Return'] < 0: 
-            if last == 'L':
-                bet=bet*.9
-            else:
-                bet = 1
-            last = 'L'
-        elif results[i-1]['Return'] > 1: 
-            if last == 'W':
-                bet = bet*1.1
-            else:
-                bet = 1
-            last = 'W'
-        rturn.append(
-            rturn[-1] + results[i]['Return']*bet
-        )
-    return rturn
+# def betting_strategy(results):
+#     bet = 1
+#     rturn = [0]
+#     if results[0]['Return'] > 0: last = 'W'
+#     else: last = 'L'
+#     for i, _ in enumerate(results):
+#         if i == 0: bet = 1
+#         elif results[i-1]['Return'] < 0: 
+#             if last == 'L':
+#                 bet=bet*.9
+#             else:
+#                 bet = 1
+#             last = 'L'
+#         elif results[i-1]['Return'] > 1: 
+#             if last == 'W':
+#                 bet = bet*1.1
+#             else:
+#                 bet = 1
+#             last = 'W'
+#         rturn.append(
+#             rturn[-1] + results[i]['Return']*bet
+#         )
+#     return rturn
         
 
 
@@ -188,7 +191,7 @@ def OptionStrategy(model_estimate_dict,date,trading_days,r,thresh,num_strikes=1,
         return {'Date':date,'Return': Return, 'Signal': signal, 'Model Estimate': model_estimate_dict, 'Market Estimate': data['Avg IV']}
     
 
-def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse',mf=None,SHAP=False):
+def RollingWindowRF(X,Y,dates,w=300,n_trees=200,msl=2,md=12,method='mse',mf=None,SHAP=False):
     '''
     For timeseries data: fit the previous w days using a random forest model to predict the next day. Repeat for range(w+1,len(X)).
 
@@ -226,8 +229,8 @@ def RollingWindowRF(X,Y,dates,w=300,n_trees=200,method='mse',mf=None,SHAP=False)
         x_train = X.iloc[t-w:t]
         y_train = Y.iloc[t-w:t]
 
-        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=2, max_features=mf, 
-                                   max_depth=12,min_samples_split=2, n_jobs=-1,criterion=method).fit(x_train,y_train)
+        rf = RandomForestRegressor(n_estimators=n_trees, random_state=10,min_samples_leaf=msl, max_features=mf, 
+                                   max_depth=md,min_samples_split=2, n_jobs=-1,criterion=method).fit(x_train,y_train)
 
         predictions[dates[t]] = rf.predict([X.iloc[t]])[0]
         feature_importance[dates[t]] = rf.feature_importances_
@@ -287,7 +290,7 @@ def RollingWindowHAR(X,Y,dates,w=300):
 
     fin = time.time() - start
 
-    return {'predictions': predictions, 'mse': mse, 'mape': mape, 'runtime': fin, 'betas': betas}
+    return {'predictions': predictions, 'mse': mse, 'mape': mape, 'runtime': fin, 'betas': betas, 'model': lr}
 
 
 def GetSignal(model,market,thresh):
@@ -328,7 +331,7 @@ def datetime_to_string(date):
         return date
     
 
-def normalize_IV_data(data,results_data,comparison):
+def normalize_IV_data(data,results_data,comparison,step):
     '''Normalizes an Implied Volatility value to its mean or median relative to historical data'''
     if comparison=='mean':
         return (data['Avg IV']/np.mean(results_data['Avg IV']))
