@@ -33,7 +33,6 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes
         raise ValueError('Comparison method must be mean when scraping data.')
     
     results = []
-    step = 0
 
     for date in dates:
         # model_estimate_dict['nominal'] is the un-normalized estimate
@@ -63,8 +62,6 @@ def RunStrategy(model_estimate_data, dates, trading_days, r, thresh, num_strikes
 
         # Obtain the results of running the option trading strategy for date
         results.append(OptionStrategy(model_estimate_dict,dt.datetime.strptime(date,'%m/%d/%y').date(),trading_days,r,thresh,num_strikes,verbose_signal,data))
-        
-        step += 1
 
         if verbose is True: print(f'{date}: {results[-1]}')
         
@@ -331,7 +328,7 @@ def datetime_to_string(date):
         return date
     
 
-def normalize_IV_data(data,results_data,comparison,step):
+def normalize_IV_data(data,results_data,comparison):
     '''Normalizes an Implied Volatility value to its mean or median relative to historical data'''
     if comparison=='mean':
         return (data['Avg IV']/np.mean(results_data['Avg IV']))
